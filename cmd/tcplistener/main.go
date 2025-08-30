@@ -1,9 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"io"
+	"httpfromtcp/internal/request"
 	"log"
 	"net"
 )
@@ -24,45 +23,17 @@ func main() {
 		}
 		fmt.Println("A connection has been accepted.")
 
-		lines := getLinesChannel(conn)
-
-		for line := range lines {
-			fmt.Println(line)
+		req, err := request.RequestFromReader(conn)
+		if err != nil {
+			fmt.Println("Error in request!")
+			log.Fatal(err)
 		}
+
+		fmt.Println("Request line:")
+		fmt.Println("- Method:", req.RequestLine.Method)
+		fmt.Println("- Target:", req.RequestLine.RequestTarget)
+		fmt.Println("- Version:", req.RequestLine.HttpVersion)
 
 		fmt.Println("The connection has been closed")
 	}
-}
-
-func getLinesChannel(f io.ReadCloser) <-chan string {
-	ch := make(chan string)
-
-	go func() {
-		defer f.Close()
-		defer close(ch)
-
-		str := ""
-		for {
-			data := make([]byte, 8)
-			n, err := f.Read(data)
-			if err != nil {
-				break
-			}
-
-			data = data[:n]
-			if i := bytes.IndexByte(data, '\n'); i != -1 {
-				str += string(data[:i])
-				data = data[i+1:]
-				ch <- str
-				str = ""
-			}
-			str += string(data)
-		}
-
-		if len(str) != 0 {
-			ch <- str
-		}
-	}()
-
-	return ch
 }
