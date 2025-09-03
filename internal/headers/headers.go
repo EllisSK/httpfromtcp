@@ -3,6 +3,7 @@ package headers
 import (
 	"bytes"
 	"fmt"
+	"strings"
 )
 
 var crlf = []byte("\r\n")
@@ -42,6 +43,7 @@ func (h Headers) Parse(data []byte) (int, bool, error) {
 
 		if idx == 0 {
 			done = true
+			read += len(crlf)
 			break
 		}
 
@@ -50,10 +52,34 @@ func (h Headers) Parse(data []byte) (int, bool, error) {
 			return 0, false, err
 		}
 
+		if !isToken([]byte(name)) {
+			return 0, false, fmt.Errorf("invalid character in header name: %q", name)
+		}
+
 		read += idx + len(crlf)
 
-		h[name] = value
+		h[strings.ToLower(name)] = value
 	}
 
 	return read, done, nil
+}
+
+func isToken(str []byte) bool {
+	for _, b := range str {
+		isAlphanumeric := (b >= 'A' && b <= 'Z') ||
+			(b >= 'a' && b <= 'z') ||
+			(b >= '0' && b <= '9')
+
+		if isAlphanumeric {
+			continue
+		}
+
+		switch b {
+		case '!', '#', '$', '%', '&', '\'', '*', '+', '-', '.', '^', '_', '`', '|', '~':
+			continue
+		default:
+			return false
+		}
+	}
+	return true
 }
