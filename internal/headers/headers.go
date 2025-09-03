@@ -58,7 +58,15 @@ func (h Headers) Parse(data []byte) (int, bool, error) {
 
 		read += idx + len(crlf)
 
-		h[strings.ToLower(name)] = value
+		lowerName := strings.ToLower(name)
+
+		existingValue, exists := h[lowerName]
+		if exists {
+			newValue := existingValue + ", " + value
+			h[lowerName] = newValue
+		} else {
+			h[lowerName] = value
+		}
 	}
 
 	return read, done, nil
